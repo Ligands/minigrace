@@ -13,6 +13,7 @@ import "mgcollections" as mgcollections
 import "interactive" as interactive
 import "identifierresolution" as identifierresolution
 import "mirrors" as mirrors
+import "inlining" as inlining
 
 util.parseargs
 
@@ -68,6 +69,7 @@ if (util.extensions.contains("Plugin")) then {
     mirrors.loadDynamicModule(util.extensions.get("Plugin")).processAST(values)
 }
 values := identifierresolution.resolve(values)
+values := inlining.process(values)
 if (util.target == "processed-ast") then {
     for (values) do { v ->
         print(v.pretty(0))

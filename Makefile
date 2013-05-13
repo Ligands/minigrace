@@ -4,7 +4,7 @@ ARCH:=$(shell uname -s)-$(shell uname -m)
 STABLE=7c9986bc77c7f13621e4616f44c4be4fed710326
 all: minigrace $(OTHER_MODULES)
 
-REALSOURCEFILES = compiler.grace util.grace ast.grace lexer.grace parser.grace genjs.grace genc.grace mgcollections.grace interactive.grace xmodule.grace identifierresolution.grace
+REALSOURCEFILES = compiler.grace util.grace ast.grace lexer.grace parser.grace genjs.grace genc.grace mgcollections.grace interactive.grace xmodule.grace identifierresolution.grace inlining.grace
 SOURCEFILES = $(REALSOURCEFILES) buildinfo.grace
 JSSOURCEFILES = js/compiler.js js/ast.js js/lexer.js js/parser.js js/genjs.js js/genc.js js/mgcollections.js js/xmodule.js js/identifierresolution.js js/buildinfo.js
 

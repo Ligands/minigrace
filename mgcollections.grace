@@ -16,6 +16,16 @@ class list.new(*a) {
     method at(n)put(x) {
         inner.at(n-1)put(x)
     }
+    method at(n)insert(x) {
+        size := size + 1
+        if (size == inner.size) then {
+            expand
+        }
+        for (0..((size-n)-1)) do { i ->
+            inner.at((size-i)-1)put(inner.at((size-i)-2))
+        }
+        inner.at(n-1)put(x)
+    }
     method []:=(n,x) {
         inner.at(n-1)put(x)
     }

@@ -11,6 +11,12 @@ var inls := collections.list.new
 var inlMethMap := collections.map.new
 var inliningCalls := false
 
+type Iterable = {
+    iterator
+}
+
+var placeRest := false;
+
 // Performs a deep search in 'values' for 'old', and replaces it
 // as well as parent nodes with new ast nodes.
 method replaceVal(old)with(new)in(values){
@@ -21,7 +27,12 @@ method replaceVal(old)with(new)in(values){
             var vs := collections.list.new
             for(1..values.size) do { n ->
                 if(n==v) then {
-                    vs.push(new)
+                    if (Iterable.match(new)) then {
+                        vs.push(new.last)
+                        placeRest := true;
+                    } else {
+                        vs.push(new)
+                    }
                 } else {
                     vs.push(values[n])
                 }
@@ -198,6 +209,27 @@ method replaceVal(old)with(new)in(values){
                 }
                 temp := replaceVal(old)with(new)in(values[v].body)
                 if(temp[1] != nothing) then {
+                    if(placeRest) then {
+                        var t3 := collections.list.new
+                        for(1..temp[1].size) do { t ->
+                            if(t == temp[2]) then {
+                                for(new) do { n ->
+                                    t3.push(n)
+                                }
+                                t3.pop
+                            }
+                            t3.push(temp[1][t])
+                        }
+                        placeRest := false
+                        // to primitive array
+                        var t4 := 0..(t3.size-1)
+                        var tc := 1
+                        for(t3) do { t ->
+                            t4[tc] := t
+                            tc := tc + 1
+                        }
+                        temp[1] := t4
+                    }
                     var t2 := ast.blockNode.new(values[v].params, temp[1])
                     t2.register := values[v].register
                     t2.line := values[v].line
@@ -221,14 +253,42 @@ method replaceVal(old)with(new)in(values){
                     return [values,v]
                 }
             }
-            //these still need to be changed to the modifying code:
-            if((values[v].kind == "class").orElse{
-                values[v].kind == "object"}.orElse{
-                values[v].kind == "array"}) then {
+            if(values[v].kind == "class") then {
                 var temp := replaceVal(old)with(new)in(values[v].value)
                 if(temp[1] != nothing) then {
-                    values[v].value[temp[2]] := temp[1][temp[2]]
-                    return [values, v]
+                    var t2 := ast.classNode.new(values[v].name,
+                        values[v].signature, temp[1], values[v].superclass,
+                        values[v].constructor)
+                    t2.generics := values[v].generics
+                    t2.register := values[v].register
+                    t2.line := values[v].line
+                    t2.instanceMethods := values[v].instanceMethods
+                    t2.data := values[v].data
+                    values[v] := t2
+                    return [values,v]
+                }
+            }
+            if(values[v].kind == "object") then {
+                var temp := replaceVal(old)with(new)in(values[v].value)
+                if(temp[1] != nothing) then {
+                    var t2 := ast.objectNode.new(temp[1], values[v].superclass)
+                    t2.register := values[v].register
+                    t2.line := values[v].line
+                    t2.otype := values[v].otype
+                    t2.classname := values[v].classname
+                    t2.data := values[v].data
+                    values[v] := t2
+                    return [values,v]
+                }
+            }
+            if((values[v].kind == "array") then {
+                var temp := replaceVal(old)with(new)in(values[v].value)
+                if(temp[1] != nothing) then {
+                    var t2 := ast.arrayNode.new(temp[1])
+                    t2.register := values[v].register
+                    t2.line := values[v].line
+                    values[v] := t2
+                    return [values,v]
                 }
             }
         }
@@ -408,6 +468,7 @@ method process(values) {
         var c := 1
         while{c <= vals.size} do {
             modified := false
+            print(vals[c])
             vals[c].accept(callVis2)
             if(modified) then {
                 //form the argument map
@@ -420,20 +481,15 @@ method process(values) {
                 // convert idents using argmap
                 replacer := processIdents(replacer)
                 
-                if(replacer.size > 1) then {
-                    print("can't handle methods with body > 1 yet")
+                if(replacer.last.kind == "return") then {
+                    replacer.at(replacer.size)put(replacer.last.value)
+                }
+                
+                temp := replaceVal(replacee)with(replacer)in(vals)
+                if(temp[1] != nothing) then {
+                    vals[temp[2]] := temp[1][temp[2]]
                 } else {
-                    replacer := replacer.last
-                    if(replacer.kind == "return") then {
-                        replacer := replacer.value
-                    }
-                    //print("replacing: {replacee}({replacee.value.value}) with {replacer}")
-                    temp := replaceVal(replacee)with(replacer)in(vals)
-                    if(temp[1] != nothing) then {
-                        vals[temp[2]] := temp[1][temp[2]]
-                    } else {
-                        print("replaceVal returned empty?")
-                    }
+                    print("replaceVal returned empty?")
                 }
                 c := c - 1
             }

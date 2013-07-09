@@ -21,6 +21,7 @@ var placeRest := false;
 // as well as parent nodes with new ast nodes.
 method replaceVal(old)with(new)in(values){
     for(1..values.size) do{ v ->
+        //print(values)
         if((values[v] == old) ||
             ((values[v].kind == old.kind) &&
             (values[v].value == old.value))) then {
@@ -95,7 +96,8 @@ method replaceVal(old)with(new)in(values){
                 }
             }
             if(values[v].kind == "if") then {
-                var temp := replaceVal(old)with(new)in([values[v].thenblock])
+                //print("[if]")
+                var temp := replaceVal(old)with(new)in(values[v].thenblock)
                 if(temp[1] != nothing) then {
                     var t2 := ast.ifNode.new(values[v].value,
                         temp[1][1], values[v].elseblock)
@@ -105,7 +107,7 @@ method replaceVal(old)with(new)in(values){
                     values[v] := t2
                     return [values,v]
                 }
-                temp := replaceVal(old)with(new)in([values[v].elseblock])
+                temp := replaceVal(old)with(new)in(values[v].elseblock)
                 if(temp[1] != nothing) then {
                     var t2 := ast.ifNode.new(values[v].value,
                         values[v].thenblock, temp[1][1])
@@ -135,6 +137,7 @@ method replaceVal(old)with(new)in(values){
                 }
             }
             if(values[v].kind == "call") then {
+                //print("[call]")
                 for(1..values[v].with.size) do { n ->
                     var temp := replaceVal(old)with(new)in(values[v].with[n].args)
                     if(temp[1] != nothing) then {
@@ -281,7 +284,7 @@ method replaceVal(old)with(new)in(values){
                     return [values,v]
                 }
             }
-            if((values[v].kind == "array") then {
+            if(values[v].kind == "array") then {
                 var temp := replaceVal(old)with(new)in(values[v].value)
                 if(temp[1] != nothing) then {
                     var t2 := ast.arrayNode.new(temp[1])
@@ -386,6 +389,32 @@ method findMeth(o) {
     }
 }
 
+def recurCallVis = object {
+    inherits ast.baseVisitor
+    
+    var root
+    var recur
+    method visitCall(o) -> Boolean {
+        //print("(recur:) {o}({o.value.value}) : {root}({root.value.value})")
+        if(o.value.value == root.value.value) then{
+            recur := true
+            //print("recursion!")
+            return true
+        }
+        true
+    }
+    method setRoot(o) {
+        root := o
+        recur := false
+    }
+}
+
+method recursiveCheck(meth){
+    recurCallVis.setRoot(meth)
+    meth.accept(recurCallVis)
+    return recurCallVis.recur
+}
+
 def inlCallVis = object {
     inherits ast.baseVisitor
     method visitCall(o) -> Boolean {
@@ -435,10 +464,13 @@ method process(values) {
     for(vals) do { v ->
         if((v.kind == "method").andAlso{
             findAnnotation(v, "inline")}) then {
-            inls.push(v)
-            bod := collections.list.new
-            bod.extend(v.body)
-            inlMethMap.put(v.pretty(0), bod)
+            //check first for recursion
+            if(!recursiveCheck(v)) then {
+                inls.push(v)
+                bod := collections.list.new
+                bod.extend(v.body)
+                inlMethMap.put(v.pretty(0), bod)
+            }
         }
     }
     if(inls.size > 0) then {
@@ -468,7 +500,7 @@ method process(values) {
         var c := 1
         while{c <= vals.size} do {
             modified := false
-            print(vals[c])
+            //print(vals[c])
             vals[c].accept(callVis2)
             if(modified) then {
                 //form the argument map

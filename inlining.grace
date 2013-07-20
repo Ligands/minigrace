@@ -21,10 +21,11 @@ var placeRest := false;
 // as well as parent nodes with new ast nodes.
 method replaceVal(old)with(new)in(values){
     for(1..values.size) do{ v ->
-        //print(values)
-        if((values[v] == old) ||
-            ((values[v].kind == old.kind) &&
-            (values[v].value == old.value))) then {
+        //print(values[v].kind)
+        if((values[v].kind != "callwithpart").andAlso{
+            (values[v] == old).orElse{
+            (values[v].kind == old.kind) &&
+            (values[v].value == old.value)}}) then {
             var vs := collections.list.new
             for(1..values.size) do { n ->
                 if(n==v) then {
@@ -32,7 +33,15 @@ method replaceVal(old)with(new)in(values){
                         vs.push(new.last)
                         placeRest := true;
                     } else {
-                        vs.push(new)
+                        if(new.kind == "identifier") then {
+                            var temp := ast.identifierNode.new(new.value, new.dtype)
+                            temp.register := new.register
+                            temp.line := new.line
+                            temp.linePos := new.linePos
+                            vs.push(temp)
+                        } else {
+                            vs.push(new)
+                        }
                     }
                 } else {
                     vs.push(values[n])
@@ -52,7 +61,17 @@ method replaceVal(old)with(new)in(values){
             }
             if((values[v].kind == "defdec").andAlso{
                 values[v].value != false}) then {
-                var temp := replaceVal(old)with(new)in([values[v].value])
+                var temp := replaceVal(old)with(new)in([values[v].name])
+                if(temp[1] != nothing) then {
+                    var t2 := ast.defDecNode.new(temp[1][1], values[v].value, values[v].dtype)
+                    t2.annotations.extend(values[v].annotations)
+                    t2.register := values[v].register
+                    t2.line := values[v].line
+                    t2.data := values[v].data
+                    values[v] := t2
+                    return [values, v]
+                }
+                temp := replaceVal(old)with(new)in([values[v].value])
                 if(temp[1] != nothing) then {
                     var t2 := ast.defDecNode.new(values[v].name, temp[1][1], values[v].dtype)
                     t2.annotations.extend(values[v].annotations)
@@ -65,7 +84,16 @@ method replaceVal(old)with(new)in(values){
             }
             if((values[v].kind == "vardec").andAlso{
                 values[v].value != false}) then {
-                var temp := replaceVal(old)with(new)in([values[v].value])
+                var temp := replaceVal(old)with(new)in([values[v].name])
+                if(temp[1] != nothing) then {
+                    var t2 := ast.varDecNode.new(temp[1][1], values[v].value, values[v].dtype)
+                    t2.annotations.extend(values[v].annotations)
+                    t2.register := values[v].register
+                    t2.line := values[v].line
+                    values[v] := t2
+                    return [values, v]
+                }
+                temp := replaceVal(old)with(new)in([values[v].value])
                 if(temp[1] != nothing) then {
                     var t2 := ast.varDecNode.new(values[v].name, temp[1][1], values[v].dtype)
                     t2.annotations.extend(values[v].annotations)
@@ -97,7 +125,17 @@ method replaceVal(old)with(new)in(values){
             }
             if(values[v].kind == "if") then {
                 //print("[if]")
-                var temp := replaceVal(old)with(new)in(values[v].thenblock)
+                var temp := replaceVal(old)with(new)in([values[v].value])
+                if(temp[1] != nothing) then {
+                    var t2 := ast.ifNode.new(temp[1][1],
+                        values[v].thenblock, values[v].elseblock)
+                    t2.register := values[v].register
+                    t2.line := values[v].line
+                    t2.handledIdentifiers := values[v].handledIdentifiers
+                    values[v] := t2
+                    return [values,v]
+                }
+                temp := replaceVal(old)with(new)in(values[v].thenblock)
                 if(temp[1] != nothing) then {
                     var t2 := ast.ifNode.new(values[v].value,
                         temp[1][1], values[v].elseblock)
@@ -136,22 +174,31 @@ method replaceVal(old)with(new)in(values){
                     return [values,v]
                 }
             }
+            if(values[v].kind == "callwithpart") then {
+                var tAr := 1..values[v].args.size
+                for(1..tAr.size) do { n ->
+                    tAr[n] := values[v].args[n]
+                }
+                var temp := replaceVal(old)with(new)in(tAr)
+                if(temp[1] != nothing) then {
+                    var t2 := ast.callWithPart.new(values[v].name, temp[1])  // *** 
+                    t2.name := values[v].name
+                    values[v] := t2
+                    return [values, v]
+                }
+            }
             if(values[v].kind == "call") then {
-                //print("[call]")
-                for(1..values[v].with.size) do { n ->
-                    var temp := replaceVal(old)with(new)in(values[v].with[n].args)
-                    if(temp[1] != nothing) then {
-                        var t3 := 1..values[v].with.size
-                        for (1..t3.size) do {i->
-                            t3[i] := (values[v].with[i])
-                        }
-                        t3[n] := ast.callWithPart.new(values[v].with[n].name, temp[1])
-                        var t2 := ast.callNode.new(values[v].value, t3)
-                        t2.register := values[v].register
-                        t2.line := values[v].line
-                        values[v] := t2
-                        return [values, v]
-                    }
+                var tAr := 1..values[v].with.size
+                for(1..tAr.size) do { n ->
+                    tAr[n] := values[v].with[n]
+                }
+                var temp := replaceVal(old)with(new)in(tAr)
+                if(temp[1] != nothing) then {
+                    var t2 := ast.callNode.new(values[v].value, temp[1])
+                    t2.register := values[v].register
+                    t2.line := values[v].line
+                    values[v] := t2
+                    return [values, v]
                 }
             }
             if(values[v].kind == "member") then {
@@ -213,26 +260,24 @@ method replaceVal(old)with(new)in(values){
                 temp := replaceVal(old)with(new)in(values[v].body)
                 if(temp[1] != nothing) then {
                     if(placeRest) then {
-                        var t3 := collections.list.new
+                        var tempRest := collections.list.new
                         for(1..temp[1].size) do { t ->
                             if(t == temp[2]) then {
                                 for(new) do { n ->
-                                    t3.push(n)
+                                    tempRest.push(n)
                                 }
-                                t3.pop
+                                tempRest.pop
                             }
-                            t3.push(temp[1][t])
+                            tempRest.push(temp[1][t])
                         }
                         placeRest := false
                         // to primitive array
-                        var t4 := 0..(t3.size-1)
-                        var tc := 1
-                        for(t3) do { t ->
-                            t4[tc] := t
-                            tc := tc + 1
+                        temp[1] := 1..(tempRest.size)
+                        for(1..tempRest.size) do { t ->
+                            temp[1][t] := tempRest[t]
                         }
-                        temp[1] := t4
                     }
+                    
                     var t2 := ast.blockNode.new(values[v].params, temp[1])
                     t2.register := values[v].register
                     t2.line := values[v].line
@@ -244,6 +289,24 @@ method replaceVal(old)with(new)in(values){
             if(values[v].kind == "method") then {
                 var temp := replaceVal(old)with(new)in(values[v].body)
                 if(temp[1] != nothing) then {
+                    if(placeRest) then {
+                        var tempRest := collections.list.new
+                        for(1..temp[1].size) do { t ->
+                            if(t == temp[2]) then {
+                                for(new) do { n ->
+                                    tempRest.push(n)
+                                }
+                                tempRest.pop
+                            }
+                            tempRest.push(temp[1][t])
+                        }
+                        placeRest := false
+                        // to primitive array
+                        temp[1] := 1..(tempRest.size)
+                        for(1..tempRest.size) do { t ->
+                            temp[1][t] := tempRest[t]
+                        }
+                    }
                     var t2 := ast.methodNode.new(values[v].value,
                         values[v].signature, temp[1], values[v].dtype)
                     t2.varargs := values[v].varargs
@@ -274,6 +337,24 @@ method replaceVal(old)with(new)in(values){
             if(values[v].kind == "object") then {
                 var temp := replaceVal(old)with(new)in(values[v].value)
                 if(temp[1] != nothing) then {
+                    if(placeRest) then {
+                        var tempRest := collections.list.new
+                        for(1..temp[1].size) do { t ->
+                            if(t == temp[2]) then {
+                                for(new) do { n ->
+                                    tempRest.push(n)
+                                }
+                                tempRest.pop
+                            }
+                            tempRest.push(temp[1][t])
+                        }
+                        placeRest := false
+                        // to primitive array
+                        temp[1] := 1..(tempRest.size)
+                        for(1..tempRest.size) do { t ->
+                            temp[1][t] := tempRest[t]
+                        }
+                    }
                     var t2 := ast.objectNode.new(temp[1], values[v].superclass)
                     t2.register := values[v].register
                     t2.line := values[v].line
@@ -299,6 +380,8 @@ method replaceVal(old)with(new)in(values){
     return [nothing, 0]
 }
 
+// ------------------------------------------------------------ //
+
 method findAnnotation(node, annName) {
     for (node.annotations) do {ann->
         if (ann.value.value == annName) then {
@@ -306,6 +389,79 @@ method findAnnotation(node, annName) {
         }
     }
     false
+}
+
+def varDecLocator = object {
+    inherits ast.baseVisitor
+    var list
+    method visitVarDec(o) -> Boolean {
+        list.push(o)
+        true
+    }
+}
+var identSet := nothing     // set of strings identifying unique identNodes
+def identLocator = object {
+    inherits ast.baseVisitor
+    var allIdents := nothing    
+    var constraint := nothing
+    
+    method visitIdentifier(o) -> Boolean {
+        if(constraint == nothing) then {
+            identSet.add(o.value)
+            return true
+        } else {
+            if(o.value == constraint) then {
+                //print ("{o} : {o.value} == {constraint}")
+                allIdents.push(o)
+                return true
+            }
+        }
+    }
+    
+    method constrain(c){
+        constraint := c
+    }
+}
+var uid := 0
+// creates a new, unique identifier
+method generateIdentifier(){
+    if(identSet == nothing) then { // initialize
+        identLocator.constrain(nothing)
+        identSet := collections.set.new
+        for(vals) do { v ->
+            v.accept(identLocator)
+        }
+    }
+    var name := "inlinedVar_{uid}"
+    uid := uid + 1
+    while{identSet.contains(name)} do {
+        name := "inlinedVar_{uid}"
+        uid := uid + 1
+    }
+    name
+}
+
+method fixConflicts(){  // give all inlined variables unique identifiers
+    for(inls) do { i -> // for each inlined method:
+        var inlBody := inlMethMap.get(i.pretty(0))
+        varDecLocator.list := collections.list.new
+        for(inlBody) do { in ->
+            in.accept(varDecLocator)
+        }
+        for(varDecLocator.list) do { vd ->   // for each varDec in inlined method:
+            var newID := generateIdentifier()
+            identLocator.allIdents := collections.list.new
+            identLocator.constrain(vd.name.value)
+            for(inlBody) do { in ->
+                in.accept(identLocator)
+            }
+            
+            for(identLocator.allIdents) do { id ->
+                replaceVal(id)with(ast.identifierNode.new(newID, false))in(inlBody)
+            }
+        }
+        inlMethMap.put(i.pretty(0), inlBody)
+    }
 }
 
 var argMap := []
@@ -319,9 +475,8 @@ def identVis = object {
         true
     }
 }
-
 // converts all identifiers in the given list (values) using the argMap and identList.
-method processIdents(values){
+method processIdents(values){ 
     identList := collections.list.new
     // find all identifiers that require converting
     for(values) do{ t ->
@@ -333,7 +488,6 @@ method processIdents(values){
         //print("mapping: <{argMap.get(i.pretty(0))}({argMap.get(i.pretty(0)).value}) -> {i}({i.value})>")
         if(temp[1] != nothing) then {
             values[temp[2]] := temp[1][temp[2]]
-            //print("mapped. ({values[temp[2]]})")
         }// else {
             //print(" * mapping failed")
         //}
@@ -380,7 +534,7 @@ method findMeth(o) {
             }
             //print("post-mod normalBody: {i.pretty(0)}")
             //inlMethMap.put(i.pretty(0), inlBody)
-            replacer := inlBody.last
+            replacer := inlBody //.last
             modified := true
         }
         if(modified) then {
@@ -399,7 +553,6 @@ def recurCallVis = object {
         if(o.value.value == root.value.value) then{
             recur := true
             //print("recursion!")
-            return true
         }
         true
     }
@@ -493,6 +646,9 @@ method process(values) {
                 }
             }
         }
+        
+        // rename inlined variable declarations with naming conflicts
+        fixConflicts()
         
         //print("inlining method bodies complete. replacing inline calls...")
         inliningCalls := true

@@ -1,7 +1,12 @@
 #pragma DefaultVisibility=public
+// minigrace inlining module.
+// author: luke bravenboer
+// year: 2013
+
 import "ast" as ast
 import "mgcollections" as collections
 import "io" as io
+import "util" as util
 
 var modified := false
 var replacer := ""
@@ -11,10 +16,16 @@ var inls := collections.list.new
 var inlMethMap := collections.map.new
 var inliningCalls := false
 
+// ------------------------------------------------------------ //
+// ----------------  AST Node Replacer Methods  --------------- //
+// ------------------------------------------------------------ //
+
 type Iterable = {
     iterator
 }
-
+type astNode = {
+    kind
+}
 var placeRest := false;
 
 // Performs a deep search in 'values' for 'old', and replaces it
@@ -82,8 +93,7 @@ method replaceVal(old)with(new)in(values){
                     return [values, v]
                 }
             }
-            if((values[v].kind == "vardec").andAlso{
-                values[v].value != false}) then {
+            if(values[v].kind == "vardec") then {
                 var temp := replaceVal(old)with(new)in([values[v].name])
                 if(temp[1] != nothing) then {
                     var t2 := ast.varDecNode.new(temp[1][1], values[v].value, values[v].dtype)
@@ -93,14 +103,16 @@ method replaceVal(old)with(new)in(values){
                     values[v] := t2
                     return [values, v]
                 }
-                temp := replaceVal(old)with(new)in([values[v].value])
-                if(temp[1] != nothing) then {
-                    var t2 := ast.varDecNode.new(values[v].name, temp[1][1], values[v].dtype)
-                    t2.annotations.extend(values[v].annotations)
-                    t2.register := values[v].register
-                    t2.line := values[v].line
-                    values[v] := t2
-                    return [values, v]
+                if((values[v].value != nothing).andAlso{values[v].value != false} ) then {
+                    temp := replaceVal(old)with(new)in([values[v].value])
+                    if(temp[1] != nothing) then {
+                        var t2 := ast.varDecNode.new(values[v].name, temp[1][1], values[v].dtype)
+                        t2.annotations.extend(values[v].annotations)
+                        t2.register := values[v].register
+                        t2.line := values[v].line
+                        values[v] := t2
+                        return [values, v]
+                    }
                 }
             }
             if(values[v].kind == "op") then {
@@ -126,8 +138,9 @@ method replaceVal(old)with(new)in(values){
             if(values[v].kind == "if") then {
                 //print("[if]")
                 var temp := replaceVal(old)with(new)in([values[v].value])
+                var t2
                 if(temp[1] != nothing) then {
-                    var t2 := ast.ifNode.new(temp[1][1],
+                    t2 := ast.ifNode.new(temp[1][1],
                         values[v].thenblock, values[v].elseblock)
                     t2.register := values[v].register
                     t2.line := values[v].line
@@ -135,19 +148,34 @@ method replaceVal(old)with(new)in(values){
                     values[v] := t2
                     return [values,v]
                 }
-                temp := replaceVal(old)with(new)in(values[v].thenblock)
-                if(temp[1] != nothing) then {
-                    var t2 := ast.ifNode.new(values[v].value,
-                        temp[1][1], values[v].elseblock)
-                    t2.register := values[v].register
-                    t2.line := values[v].line
-                    t2.handledIdentifiers := values[v].handledIdentifiers
-                    values[v] := t2
-                    return [values,v]
+                if(Iterable.match(values[v].thenblock)) then {
+                    var tAr := 1..values[v].thenblock.size
+                    for(1..tAr.size) do { n ->
+                        tAr[n] := values[v].thenblock[n]
+                    }
+                    temp := replaceVal(old)with(new)in(tAr)
+                    if(temp[1] != nothing) then {
+                        t2 := ast.ifNode.new(values[v].value, temp[1], values[v].elseblock)
+                        t2.register := values[v].register
+                        t2.line := values[v].line
+                        t2.handledIdentifiers := values[v].handledIdentifiers
+                        values[v] := t2
+                        return [values,v]
+                    }
+                } else {
+                    temp := replaceVal(old)with(new)in([values[v].thenblock])
+                    if(temp[1] != nothing) then {
+                        t2 := ast.ifNode.new(values[v].value, temp[1][1], values[v].elseblock)
+                        t2.register := values[v].register
+                        t2.line := values[v].line
+                        t2.handledIdentifiers := values[v].handledIdentifiers
+                        values[v] := t2
+                        return [values,v]
+                    }
                 }
                 temp := replaceVal(old)with(new)in(values[v].elseblock)
                 if(temp[1] != nothing) then {
-                    var t2 := ast.ifNode.new(values[v].value,
+                    t2 := ast.ifNode.new(values[v].value,
                         values[v].thenblock, temp[1][1])
                     t2.register := values[v].register
                     t2.line := values[v].line
@@ -165,13 +193,15 @@ method replaceVal(old)with(new)in(values){
                     values[v] := t2
                     return [values,v]
                 }
-                temp := replaceVal(old)with(new)in([values[v].value])
-                if(temp[1] != nothing) then {
-                    var t2 := ast.bindNode.new(values[v].dest, temp[1][1])
-                    t2.register := values[v].register
-                    t2.line := values[v].line
-                    values[v] := t2
-                    return [values,v]
+                if(values[v].value != nothing) then {
+                    temp := replaceVal(old)with(new)in([values[v].value])
+                    if(temp[1] != nothing) then {
+                        var t2 := ast.bindNode.new(values[v].dest, temp[1][1])
+                        t2.register := values[v].register
+                        t2.line := values[v].line
+                        values[v] := t2
+                        return [values,v]
+                    }
                 }
             }
             if(values[v].kind == "callwithpart") then {
@@ -381,6 +411,8 @@ method replaceVal(old)with(new)in(values){
 }
 
 // ------------------------------------------------------------ //
+// ---------------------  Helper Methods  --------------------- //
+// ------------------------------------------------------------ //
 
 method findAnnotation(node, annName) {
     for (node.annotations) do {ann->
@@ -390,6 +422,10 @@ method findAnnotation(node, annName) {
     }
     false
 }
+
+// ------------------------------------------------------------ //
+// ----------------  VarDec Name Clash Methods  --------------- //
+// ------------------------------------------------------------ //
 
 def varDecLocator = object {
     inherits ast.baseVisitor
@@ -463,6 +499,79 @@ method fixConflicts(){  // give all inlined variables unique identifiers
         inlMethMap.put(i.pretty(0), inlBody)
     }
 }
+
+// ------------------------------------------------------------ //
+// ----------------- Constant Prop. Methods  ------------------ //
+// ------------------------------------------------------------ //
+
+method constFold(node){
+    if(!astNode.match(node)) then { return false }
+    if(node.kind == "op") then {
+        // recursively fold each side of the opNode
+        if(node.left.kind == "op") then {
+            var tmp := constFold(node.left)
+            if(tmp == false) then { return false }
+            node.left := tmp
+        }
+        if(node.right.kind == "op") then {
+            var tmp := constFold(node.right)
+            if(tmp == false) then { return false }
+            node.right := tmp
+        }
+        if((node.left.kind == "num").andAlso{
+            node.right.kind == "num"}) then {
+            if(node.value == "+") then {
+                return ast.numNode.new(node.left.value + node.right.value) }
+            if(node.value == "-") then {
+                return ast.numNode.new(node.left.value - node.right.value) }
+            if(node.value == "*") then {
+                return ast.numNode.new(node.left.value * node.right.value) }
+            if(node.value == "/") then {
+                return ast.numNode.new(node.left.value / node.right.value) }
+            print("unhandled num op type: '{node.value}'")
+            return false
+        }
+        if(node.value == "||") then {
+            if((node.left.kind == "identifier").andAlso{
+                node.right.kind == "identifier"}) then {
+                var new := nothing
+                // if both nodes are boolean and 'or' together true
+                if(((node.left.value == "true").andAlso{
+                    (node.right.value == "false") || (node.right.value == "true")} ||
+                    (node.right.value == "true").andAlso{
+                    (node.right.value == "false") || (node.right.value == "true")}) then {
+                    new := ast.identifierNode.new("true", node.left.dtype)
+                }
+                if((node.left.value == "false") &&
+                    (node.right.value == "false")) then {
+                    new := ast.identifierNode.new("false", node.left.dtype)
+                }
+                if(new == nothing) then { return false }
+                new.line := node.left.line
+                new.linePos := node.left.linePos
+                return new
+            }
+        }
+        if(node.value == "&&") then {
+        
+        }
+        
+        
+        
+        return true
+    }
+    false
+}
+
+method constantProp(){
+    
+    
+    
+}
+
+// ------------------------------------------------------------ //
+// -------------------- Inlining Methods  --------------------- //
+// ------------------------------------------------------------ //
 
 var argMap := []
 var identList := []
@@ -609,6 +718,7 @@ def callVis2 = object {
 
 // Begins the inlining process on the ast.
 method process(values) {
+    util.log_verbose "inlining method calls."
     vals := collections.list.new
     vals.extend(values)
     var n := 1
@@ -683,7 +793,12 @@ method process(values) {
             }
             c := c + 1
         }
-    }
+    }   // methods are inlined
+    
+    util.log_verbose "propagating constants."
+    //constant folding
+    constantProp()
+    
     return vals
 }
 

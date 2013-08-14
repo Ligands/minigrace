@@ -1,0 +1,16 @@
+Times |
+------+
+
+Standard:
+
+concrete average of 10: 2.826s
+inline average of 10: 1.128s
+
+concrete average of 10: 2.548s
+inline average of 10: 1.018s
+
+***
+
+Notation optimisation, v0.1:
+
+

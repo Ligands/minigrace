@@ -26,7 +26,7 @@ method constantProp2(a) is inline {
 }
 
 method constantProp1() is inline{
-    var a := 30
+    var a := 29 + 1
     var b := 9 - (a / 5);
     var c 
     c := b * 4

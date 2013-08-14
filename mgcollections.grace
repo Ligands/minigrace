@@ -16,16 +16,27 @@ class list.new(*a) {
     method at(n)put(x) {
         inner.at(n-1)put(x)
     }
+    
     method at(n)insert(x) {
+        var i := size
         size := size + 1
+        while{i >= n} do {
+            inner.at(i)put(inner.at(i-1))
+            i := i - 1
+        }
+        inner.at(n-1)put(x)        
+        
         if (size == inner.size) then {
             expand
         }
-        for (0..((size-n)-1)) do { i ->
-            inner.at((size-i)-1)put(inner.at((size-i)-2))
-        }
-        inner.at(n-1)put(x)
     }
+    method delete(n) {
+        size := size - 1
+        for(n..size) do { i ->
+            inner.at(i-1)put(inner.at(i))
+        }
+    }
+    
     method []:=(n,x) {
         inner.at(n-1)put(x)
     }
@@ -128,6 +139,16 @@ class set.new(*a) {
             expand
         }
     }
+    method remove(x) {
+        if (!contains(x)) then {
+            return false
+        }
+        var t := findPosition(x)
+        for(t..(inner.size-2)) do {i->
+            inner.at(i)put(inner.at(i+1))
+        }
+        size := size - 1
+    }
     method contains(x) {
         var t := findPosition(x)
         if (inner.at(t) == x) then {
@@ -217,7 +238,6 @@ class set.new(*a) {
     }
     for (a) do {x->
         add(x)
-        size := size + 1
     }
 }
 

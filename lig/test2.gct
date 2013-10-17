@@ -1,0 +1,10 @@
+fresh-methods:
+modules:
+path:
+ lig/test2
+classes:
+public:
+ inline
+ main
+confidential:
+ constantProp1

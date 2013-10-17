@@ -1,0 +1,18 @@
+wanted:
+VarDec
+  Identifier(s)
+  Type:
+    Identifier(Dynamic)
+  String(wut)
+
+
+got:
+VarDec
+  Identifier(s)
+  Type:
+    Identifier(Dynamic)
+  Call
+    Method: Identifier(test2)
+    Arguments:
+      Part: test2
+

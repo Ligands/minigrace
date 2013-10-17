@@ -1,0 +1,14 @@
+confidential:
+modules:
+ sys
+fresh-methods:
+path:
+ lig/matrix-mult
+classes:
+public:
+ width
+ inline
+ initAr
+ avg
+ avg:=
+ main

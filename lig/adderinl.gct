@@ -1,0 +1,12 @@
+path:
+ lig/adderinl
+classes:
+public:
+ inline
+ inlineadd
+ main
+confidential:
+ add128i
+fresh-methods:
+modules:
+ sys

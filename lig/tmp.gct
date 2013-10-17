@@ -1,0 +1,8 @@
+confidential:
+modules:
+fresh-methods:
+path:
+ lig/tmp
+classes:
+public:
+ mainmain

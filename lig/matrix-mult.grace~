@@ -1,0 +1,34 @@
+import "sys" as sys
+def width : Number = 75
+method initAr(){
+    var ar := 1..width
+    var tmp := 1..width
+    for (tmp) do { v ->
+        ar[v] := tmp
+    }
+    ar
+}
+var avg := 0
+method main(n){
+    var time := sys.cputime
+    def A = initAr
+    def B = initAr
+    var sum : Number
+    var C := initAr
+    for(1..width) do { i->
+        for(1..width) do { j->
+            sum := 0
+            for(1..width) do { k->
+                sum := sum + (A[i][k] * B[k][j])
+            }
+            C[i][j] := sum
+        }
+    }
+    var tt := (sys.cputime - time)
+    avg := avg + tt
+    print("Run {n}: {tt}s")
+}
+for(1..15) do { i ->
+    main(i)
+}
+print("average : {avg/15}s")

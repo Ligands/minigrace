@@ -1,0 +1,82 @@
+#pragma DefaultVisibility=public
+import "ast" as ast
+import "io" as io
+
+// Begins the inlining process on the ast.
+method process(values) {
+    var v;
+    print("ALL VALUES:")
+    printVals(values)
+    for (1..(values.size)) do { i ->
+        v := values[i]
+        if (v.kind == "call") then {
+            print("trying to find {v.value.value}")
+            var v' := findMeth(values, v.value.value)
+            if(v' != nothing) then {
+                values[i] := v'.body
+            } else {
+                print("couldn't find inline def for {v.value.value}")
+            }
+            //if(ast.findAnnotation(v, "inline")) then {
+            //    print("found inline annotation")
+            //}
+        }
+    }
+    return values
+}
+
+method printVals(vals) {
+    for(vals) do { v ->
+        print(v.pretty(0));
+    }
+}
+
+method findMeth(vals, name) {
+    //find method
+    for(vals) do { v' ->
+        if(v'.kind == "method") then{
+            print("method found: {v'.value.value} {v'.annotations}")
+            if((ast.findAnnotation(v',"inline"))
+                && (v'.value.value == name)) then {
+                print("inline found: {v'.value}")
+                return v'
+            }
+        }
+        elseif(v'.kind == "class") then{
+        }
+    }
+    return nothing
+}
+
+method findCall(vals, name) {
+    
+}
+
+
+
+method oldCode(){
+    var meth;
+    // **   Changes   ** //
+    if (ast.findAnnotation(meth, "inline")) then {
+        print("yay");
+        def vis = object {
+            inherits ast.baseVisitor
+            method visitCall(o) -> Boolean {
+                //do something
+                
+                
+                true
+            }
+        }
+
+        //if (ast.findAnnotation(o, "inline")) then {
+        //    for(body) do { i ->
+        //       values.push(i)
+        //    }
+        //} else {
+        //    values.push(o)
+        //}
+    }
+    // ** End Changes ** //
+}
+**/

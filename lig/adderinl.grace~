@@ -1,0 +1,13 @@
+import "sys" as sys
+
+method inline{}
+
+method inlineadd(){
+    print("time taken: {sys.cputime}s")
+}
+
+method main(){
+  inlineadd()
+}
+
+main()

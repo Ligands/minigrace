@@ -1,0 +1,19 @@
+path:
+ lig/nqueens
+classes:
+public:
+ N
+ b
+ b:=
+ s
+ s:=
+ inline
+ avg
+ avg:=
+ main
+confidential:
+ unsafe
+ printBoard
+fresh-methods:
+modules:
+ sys

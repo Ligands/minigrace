@@ -1,0 +1,14 @@
+path:
+ lig/euler/euler_2
+classes:
+public:
+ sum
+ sum:=
+ a
+ a:=
+ b
+ b:=
+confidential:
+fresh-methods:
+modules:
+ mgcollections

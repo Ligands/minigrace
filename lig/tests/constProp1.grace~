@@ -1,0 +1,15 @@
+#pragma DefaultVisibility=public
+method inline{}
+
+method constantProp() is inline{
+    def i : Number = 20
+    return (i + 3)
+
+}
+
+method main(){
+    var n := constantProp()
+    if(n == 23) print("pass")
+}
+
+main()

@@ -1,0 +1,20 @@
+modules:
+ sys
+path:
+ lig/adder
+classes:
+public:
+ inline
+ main
+ concreteadd
+ inlineadd
+confidential:
+ add128i
+ add128
+ add64
+ add32
+ add16
+ add8
+ add4
+ add2
+fresh-methods:

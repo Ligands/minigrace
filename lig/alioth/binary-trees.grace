@@ -1,0 +1,43 @@
+import "sys" as sys
+def nil = object {}
+method item_check(ar){
+    def left = ar[1]
+    def item = ar[2]
+    def right = ar[3]
+    if(left == nil) then { return item }
+    item + (item_check(left) - item_check(right))
+}
+method bottom_up_tree(item, depth){
+    if(depth <= 0) then { return [nil, item, nil] }
+    var item_item := 2 * item
+    def d = depth - 1
+    [bottom_up_tree(item_item - 1, d), item, bottom_up_tree(item_item, d)]
+}
+method main(){
+    def max_depth:Number = 12    // 12 = default, 16 = slow, 8 = fast
+    def min_depth:Number = 4
+    var stretch_depth := max_depth + 1
+    var stretch_tree := bottom_up_tree(0, stretch_depth)
+    print("stretch tree of depth {stretch_depth}\t check: {item_check(stretch_tree)}")
+    stretch_tree := nil
+    var long_lived_tree := bottom_up_tree(0, max_depth)
+    var time := sys.cputime // timer start
+    var depth := min_depth
+    while{depth < (max_depth + 1)} do {
+        var iterations := 2^((max_depth - depth) + min_depth)
+        var check := 0
+        for(1..iterations) do { i->
+            var temp_tree := bottom_up_tree(i, depth)
+            check := check + item_check(temp_tree)
+            temp_tree := bottom_up_tree(-i, depth)
+            check := check + item_check(temp_tree)
+        }
+        print "{iterations * 2}\ttrees of depth {depth}\t check: {check}"
+        depth := depth + 2
+    }
+    print "long lived tree of depth {max_depth}\t check: {item_check(long_lived_tree)}"
+    time := (sys.cputime - time) // timer end
+    if(time >= 2) then { print " * (execution time = {time}s)" }
+    else { print " * (execution time = {time*1000}ms)" }
+}
+main

@@ -1,0 +1,3 @@
+inlined + constants propagated: 0.003s
+inlined: 0.103s
+no optimisation: 0.108s

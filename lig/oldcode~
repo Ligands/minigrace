@@ -1,0 +1,38 @@
+var out := io.open("WTF", "w")
+out.write("FOUND inline annotation\n")
+out.close
+
+for (1..(values.size)) do { v ->
+    if (v.kind == "call") then {
+        if(ast.findAnnotation(v, "inline")) then {  
+        }
+    }
+    values[v] := 0
+}
+
+method oldCode(){
+    var meth;
+    // **   Changes   ** //
+    if (ast.findAnnotation(meth, "inline")) then {
+        print("yay");
+        def vis = object {
+            inherits ast.baseVisitor
+            method visitCall(o) -> Boolean {
+                //do something
+                
+                
+                true
+            }
+        }
+
+        //if (ast.findAnnotation(o, "inline")) then {
+        //    for(body) do { i ->
+        //       values.push(i)
+        //    }
+        //} else {
+        //    values.push(o)
+        //}
+    }
+    // ** End Changes ** //
+}
+**/

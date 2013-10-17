@@ -1,0 +1,14 @@
+modules:
+fresh-methods:
+path:
+ lig/test
+classes:
+public:
+ inline
+ main
+confidential:
+ namingConflict
+ recurse
+ constantProp2
+ constantProp1
+ multiLine

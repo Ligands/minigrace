@@ -1,0 +1,48 @@
+map entry: <Identifier(x1), identifierNode[0x0x97d70b4]>
+map entry: <Identifier(x2), identifierNode[0x0x958fbf4]>
+map entry: <Identifier(x3), identifierNode[0x0x969f094]>
+map entry: <Identifier(x4), identifierNode[0x0x969f23c]>
+caller = Call
+  Method: Member(add4)
+    Identifier(self)
+  Arguments:
+    Part: add4
+      Identifier(x9)
+      Identifier(x10)
+      Identifier(x11)
+      Identifier(x12)
+evaluating: Return
+  Op(+)
+    Call
+      Method: Member(add2)
+        Identifier(self)
+      Arguments:
+        Part: add2
+          Identifier(x5)
+          Identifier(x6)
+    Call
+      Method: Member(add2)
+        Identifier(self)
+      Arguments:
+        Part: add2
+          Identifier(x7)
+          Identifier(x8)
+caller idents=[x9, x10, x11, x12, ]
+evaluated: Return
+  Op(+)
+    Call
+      Method: Member(add2)
+        Identifier(self)
+      Arguments:
+        Part: add2
+          Identifier(x5)
+          Identifier(x6)
+    Call
+      Method: Member(add2)
+        Identifier(self)
+      Arguments:
+        Part: add2
+          Identifier(x7)
+          Identifier(x8)
+press enter to continue
+
